@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Protected Characteristics Catcher</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --text:#e8eefc;
+      --muted:#a9b7d6;
+      --border:rgba(255,255,255,.12);
+      --radius:14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+
+      /* Neutral item styling (no “right/wrong” colours) */
+      --item-bg: rgba(255,255,255,.12);
+      --item-stroke: rgba(255,255,255,.28);
+    }
+
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(96,165,250,.20), transparent 60%),
+                  radial-gradient(900px 700px at 80% 30%, rgba(255,255,255,.10), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 14px;
+      box-sizing:border-box;
+    }
+
+    .wrap{
+      width:min(980px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    header{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      justify-content:space-between;
+      padding: 14px 16px;
+      background: rgba(17,27,46,.65);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    h1{
+      font-size: 16px;
+      margin:0;
+      letter-spacing:.2px;
+    }
+
+    .help{
+      font-size: 13px;
+      margin:0;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+
+    button, select{
+      appearance:none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor:pointer;
+    }
+
+    button:hover, select:hover{
+      border-color: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.09);
+    }
+
+    button:focus, select:focus{
+      outline: 3px solid rgba(96,165,250,.35);
+      outline-offset: 2px;
+    }
+
+    .hud{
+      display:flex;
+      gap:10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(17,27,46,.35);
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .pill{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      border-radius:999px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .pill b{ color: var(--text); font-weight: 750; }
+
+    .status{
+      margin-left:auto;
+      min-width: 300px;
+      text-align:right;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.2;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .stage{
+      position:relative;
+      background: linear-gradient(180deg, rgba(96,165,250,.08), transparent 45%);
+      padding: 12px;
+    }
+
+    canvas{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.18);
+    }
+
+    .overlay{
+      position:absolute;
+      inset:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+    }
+
+    .card{
+      pointer-events:auto;
+      width:min(600px, 92%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(17,27,46,.88);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .card h2{
+      margin:0 0 8px;
+      font-size: 16px;
+    }
+
+    .card p{
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .card ul{
+      margin: 8px 0 12px 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .sr{
+      position:absolute;
+      left:-10000px;
+      top:auto;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Protected Characteristics Catcher</h1>
+        <p class="help">
+          Catch the <b>protected characteristics</b>. Avoid the distractors.
+          Use ← → (or A/D). On touch, drag anywhere.
+        </p>
+      </div>
+      <div class="controls">
+        <select id="mode" aria-label="Difficulty">
+          <option value="easy">Easy</option>
+          <option value="standard" selected>Standard</option>
+          <option value="hard">Hard</option>
+        </select>
+        <button id="startBtn" type="button">Start</button>
+        <button id="pauseBtn" type="button" disabled>Pause</button>
+        <button id="resetBtn" type="button">Reset</button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="pill">Score: <b id="score">0</b></div>
+      <div class="pill">Streak: <b id="streak">0</b></div>
+      <div class="pill">Lives: <b id="lives">3</b></div>
+      <div class="pill">Level: <b id="level">1</b></div>
+      <div class="status" id="status">Catch protected characteristics (no colour hints).</div>
+    </div>
+
+    <div class="stage">
+      <canvas id="game" width="960" height="540" aria-label="Game canvas"></canvas>
+
+      <div class="overlay" id="overlay">
+        <div class="card">
+          <h2>How to play</h2>
+          <p>Move the basket to catch only the protected characteristics (Equality Act 2010).</p>
+          <ul>
+            <li>Correct catch = score increases</li>
+            <li>Catching a distractor = lose a life</li>
+            <li>Missing a protected characteristic = -1 score (no life loss)</li>
+          </ul>
+          <div class="row">
+            <button id="playNow" type="button">Play</button>
+            <button id="practice" type="button">Practice: Protected only</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sr" aria-live="polite" id="live"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // =========================
+  // PROTECTED CHARACTERISTICS (9)
+  // =========================
+  const PROTECTED = [
+    { label: "Age" },
+    { label: "Disability" },
+    { label: "Gender reassignment" },
+    { label: "Marriage and civil partnership" },
+    { label: "Pregnancy and maternity" },
+    { label: "Race" },
+    { label: "Religion or belief" },
+    { label: "Sex" },
+    { label: "Sexual orientation" }
+  ];
+
+  // =========================
+  // DISTRACTORS (non-protected examples)
+  // =========================
+  const DISTRACTORS = [
+    { label: "Income level" },
+    { label: "Education level" },
+    { label: "Postcode" },
+    { label: "Appearance" },
+    { label: "Personality" },
+    { label: "Job title" },
+    { label: "Housing status" },
+    { label: "Political views" },
+    { label: "Criminal record" },
+    { label: "Social class" },
+    { label: "Accent" }
+  ];
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const ui = {
+    score: document.getElementById("score"),
+    streak: document.getElementById("streak"),
+    lives: document.getElementById("lives"),
+    level: document.getElementById("level"),
+    status: document.getElementById("status"),
+    startBtn: document.getElementById("startBtn"),
+    pauseBtn: document.getElementById("pauseBtn"),
+    resetBtn: document.getElementById("resetBtn"),
+    mode: document.getElementById("mode"),
+    overlay: document.getElementById("overlay"),
+    playNow: document.getElementById("playNow"),
+    practice: document.getElementById("practice"),
+    live: document.getElementById("live")
+  };
+
+  function announce(msg) {
+    ui.live.textContent = msg;
+    ui.status.textContent = msg;
+  }
+
+  const state = {
+    running: false,
+    paused: false,
+    practiceProtectedOnly: false,
+    score: 0,
+    streak: 0,
+    lives: 3,
+    level: 1,
+    spawnTimer: 0,
+    items: [],
+    lastTs: 0,
+    difficulty: "standard"
+  };
+
+  const basket = {
+    x: canvas.width / 2,
+    y: canvas.height - 46,
+    w: 170,
+    h: 22,
+    speed: 560,
+    vx: 0
+  };
+
+  const DIFF = {
+    easy:     { spawnBase: 1.10, fallBase: 125, fallGain: 8,  lives: 4 },
+    standard: { spawnBase: 0.95, fallBase: 155, fallGain: 10, lives: 3 },
+    hard:     { spawnBase: 0.80, fallBase: 180, fallGain: 12, lives: 2 }
+  };
+
+  function reset(showOverlay = true) {
+    const d = DIFF[state.difficulty];
+    state.running = false;
+    state.paused = false;
+    state.practiceProtectedOnly = false;
+    state.score = 0;
+    state.streak = 0;
+    state.lives = d.lives;
+    state.level = 1;
+    state.spawnTimer = 0;
+    state.items = [];
+    state.lastTs = 0;
+
+    basket.x = canvas.width / 2;
+    basket.vx = 0;
+
+    ui.score.textContent = state.score;
+    ui.streak.textContent = state.streak;
+    ui.lives.textContent = state.lives;
+    ui.level.textContent = state.level;
+    announce("Catch protected characteristics (no colour hints).");
+
+    ui.pauseBtn.disabled = true;
+    ui.pauseBtn.textContent = "Pause";
+    ui.startBtn.disabled = false;
+
+    ui.overlay.style.display = showOverlay ? "flex" : "none";
+    draw();
+  }
+
+  function setDifficulty(val) {
+    state.difficulty = val;
+    reset(true);
+  }
+
+  function start(practice = false) {
+    state.practiceProtectedOnly = practice;
+    state.running = true;
+    state.paused = false;
+    ui.overlay.style.display = "none";
+    ui.startBtn.disabled = true;
+    ui.pauseBtn.disabled = false;
+    announce(practice ? "Practice: protected characteristics only." : "Game started.");
+    requestAnimationFrame(loop);
+  }
+
+  function togglePause() {
+    if (!state.running) return;
+    state.paused = !state.paused;
+    ui.pauseBtn.textContent = state.paused ? "Resume" : "Pause";
+    announce(state.paused ? "Paused." : "Resumed.");
+    if (!state.paused) requestAnimationFrame(loop);
+  }
+
+  function gameOver() {
+    state.running = false;
+    ui.startBtn.disabled = false;
+    ui.pauseBtn.disabled = true;
+
+    ui.overlay.querySelector("h2").textContent = "Game over";
+    ui.overlay.querySelector("p").textContent =
+      `Final score: ${state.score}. Catch only protected characteristics.`;
+    ui.overlay.style.display = "flex";
+    announce("Game over.");
+  }
+
+  function levelUpIfNeeded() {
+    const targetLevel = 1 + Math.floor(state.score / 10);
+    if (targetLevel > state.level) {
+      state.level = targetLevel;
+      ui.level.textContent = state.level;
+      announce(`Level ${state.level}. Faster drops.`);
+    }
+  }
+
+  function spawnItem() {
+    const isProtected = state.practiceProtectedOnly ? true : (Math.random() < 0.5);
+    const src = isProtected ? PROTECTED : DISTRACTORS;
+    const pick = src[Math.floor(Math.random() * src.length)];
+
+    const padding = 30;
+    const x = padding + Math.random() * (canvas.width - padding * 2);
+    const y = -30;
+
+    const d = DIFF[state.difficulty];
+    const speed = d.fallBase + (state.level - 1) * d.fallGain + Math.random() * 45;
+
+    const baseW = 160;
+    const w = Math.min(360, baseW + pick.label.length * 7);
+    const h = 36;
+
+    state.items.push({
+      x, y, w, h,
+      vy: speed,
+      kind: isProtected ? "protected" : "distractor",
+      label: pick.label
+    });
+  }
+
+  function update(dt) {
+    if (!state.running || state.paused) return;
+
+    levelUpIfNeeded();
+
+    const d = DIFF[state.difficulty];
+    const spawnEvery = Math.max(0.48, d.spawnBase - (state.level - 1) * 0.03);
+
+    state.spawnTimer += dt;
+    while (state.spawnTimer >= spawnEvery) {
+      state.spawnTimer -= spawnEvery;
+      spawnItem();
+    }
+
+    // Move basket
+    basket.x += basket.vx * dt;
+    const half = basket.w / 2;
+    basket.x = Math.max(half, Math.min(canvas.width - half, basket.x));
+
+    // Basket bounds
+    const bx1 = basket.x - basket.w / 2;
+    const bx2 = basket.x + basket.w / 2;
+    const by1 = basket.y - basket.h / 2;
+    const by2 = basket.y + basket.h / 2;
+
+    for (let i = state.items.length - 1; i >= 0; i--) {
+      const it = state.items[i];
+      it.y += it.vy * dt;
+
+      // Item bounds
+      const ix1 = it.x - it.w / 2;
+      const ix2 = it.x + it.w / 2;
+      const iy1 = it.y - it.h / 2;
+      const iy2 = it.y + it.h / 2;
+
+      const hit = ix1 < bx2 && ix2 > bx1 && iy1 < by2 && iy2 > by1;
+
+      if (hit) {
+        state.items.splice(i, 1);
+
+        if (it.kind === "protected") {
+          state.streak += 1;
+          const bonus = Math.min(5, Math.floor(state.streak / 3));
+          state.score += 1 + bonus;
+          ui.score.textContent = state.score;
+          ui.streak.textContent = state.streak;
+          announce(`Correct: ${it.label}. +${1 + bonus}`);
+        } else {
+          state.streak = 0;
+          state.lives -= 1;
+          ui.streak.textContent = state.streak;
+          ui.lives.textContent = state.lives;
+          announce(`Not protected: ${it.label}. -1 life`);
+          if (state.lives <= 0) {
+            draw();
+            return gameOver();
+          }
+        }
+        continue;
+      }
+
+      // Missed items
+      if (it.y - it.h/2 > canvas.height + 20) {
+        state.items.splice(i, 1);
+
+        // Penalty for missing protected items (score only, not lives)
+        if (it.kind === "protected" && !state.practiceProtectedOnly) {
+          state.streak = 0;
+          state.score = Math.max(0, state.score - 1);
+          ui.score.textContent = state.score;
+          ui.streak.textContent = state.streak;
+          announce(`Missed: ${it.label}. -1`);
+        }
+      }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Soft grid
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.strokeStyle = "#ffffff";
+    for (let x = 0; x <= canvas.width; x += 48) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = 0; y <= canvas.height; y += 48) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Basket
+    ctx.save();
+    ctx.translate(basket.x, basket.y);
+
+    roundRect(ctx, -basket.w/2, -basket.h/2, basket.w, basket.h, 10);
+    ctx.fillStyle = "rgba(255,255,255,.12)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.25)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    roundRect(ctx, -basket.w/2 + 10, -basket.h/2 - 10, basket.w - 20, 16, 10);
+    ctx.fillStyle = "rgba(96,165,250,.22)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(96,165,250,.40)";
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Items (all same style)
+    for (const it of state.items) {
+      ctx.save();
+      ctx.translate(it.x, it.y);
+
+      roundRect(ctx, -it.w/2, -it.h/2, it.w, it.h, 12);
+      ctx.fillStyle = getCssVar("--item-bg");
+      ctx.fill();
+      ctx.strokeStyle = getCssVar("--item-stroke");
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#e8eefc";
+      ctx.font = "700 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(it.label, 0, -1);
+
+      ctx.restore();
+    }
+
+    // Hint
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(0,0,0,.25)";
+    roundRect(ctx, 14, 14, 520, 34, 12);
+    ctx.fill();
+    ctx.fillStyle = "#e8eefc";
+    ctx.font = "600 13px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Catch protected characteristics (Equality Act 2010). No colour hints.", 28, 31);
+    ctx.restore();
+  }
+
+  function getCssVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    c.beginPath();
+    c.moveTo(x + rr, y);
+    c.arcTo(x + w, y, x + w, y + h, rr);
+    c.arcTo(x + w, y + h, x, y + h, rr);
+    c.arcTo(x, y + h, x, y, rr);
+    c.arcTo(x, y, x + w, y, rr);
+    c.closePath();
+  }
+
+  function loop(ts) {
+    if (!state.running || state.paused) return;
+    if (!state.lastTs) state.lastTs = ts;
+    const dt = Math.min(0.033, (ts - state.lastTs) / 1000);
+    state.lastTs = ts;
+
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // Keyboard input
+  const keys = new Set();
+  window.addEventListener("keydown", (e) => {
+    if (["ArrowLeft","ArrowRight","a","A","d","D"].includes(e.key)) e.preventDefault();
+    keys.add(e.key);
+    basket.vx = getVX();
+  });
+  window.addEventListener("keyup", (e) => {
+    keys.delete(e.key);
+    basket.vx = getVX();
+  });
+
+  function getVX(){
+    const left = keys.has("ArrowLeft") || keys.has("a") || keys.has("A");
+    const right = keys.has("ArrowRight") || keys.has("d") || keys.has("D");
+    if (left && !right) return -basket.speed;
+    if (right && !left) return basket.speed;
+    return 0;
+  }
+
+  // Pointer/touch drag
+  let dragging = false;
+  function pointerXToCanvas(px){
+    const rect = canvas.getBoundingClientRect();
+    return (px - rect.left) * (canvas.width / rect.width);
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    dragging = true;
+    canvas.setPointerCapture(e.pointerId);
+    basket.x = pointerXToCanvas(e.clientX);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    basket.x = pointerXToCanvas(e.clientX);
+  });
+  canvas.addEventListener("pointerup", () => dragging = false);
+  canvas.addEventListener("pointercancel", () => dragging = false);
+
+  // Buttons
+  ui.mode.addEventListener("change", () => setDifficulty(ui.mode.value));
+  ui.startBtn.addEventListener("click", () => { reset(false); start(false); });
+  ui.pauseBtn.addEventListener("click", togglePause);
+  ui.resetBtn.addEventListener("click", () => reset(true));
+  ui.playNow.addEventListener("click", () => { reset(false); start(false); });
+  ui.practice.addEventListener("click", () => { reset(false); start(true); });
+
+  // Init
+  setDifficulty(ui.mode.value);
+  draw();
+})();
+</script>
+</body>
+</html>
