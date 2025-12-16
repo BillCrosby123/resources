@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Qualitative Catcher</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#111b2e;
+      --text:#e8eefc;
+      --muted:#a9b7d6;
+      --good:#2dd4bf;
+      --bad:#fb7185;
+      --accent:#60a5fa;
+      --border:rgba(255,255,255,.12);
+      --radius:14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(96,165,250,.25), transparent 60%),
+                  radial-gradient(900px 700px at 80% 30%, rgba(45,212,191,.18), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 14px;
+      box-sizing:border-box;
+    }
+
+    .wrap{
+      width:min(980px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    header{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      justify-content:space-between;
+      padding: 14px 16px;
+      background: rgba(17,27,46,.65);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    h1{
+      font-size: 16px;
+      margin:0;
+      letter-spacing:.2px;
+    }
+
+    .help{
+      font-size: 13px;
+      margin:0;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+
+    button, select{
+      appearance:none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor:pointer;
+    }
+
+    button:hover, select:hover{
+      border-color: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.09);
+    }
+
+    button:focus, select:focus{
+      outline: 3px solid rgba(96,165,250,.35);
+      outline-offset: 2px;
+    }
+
+    .hud{
+      display:flex;
+      gap:10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(17,27,46,.35);
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      border-radius:999px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .pill b{ color: var(--text); font-weight: 750; }
+
+    .legend{
+      margin-left:auto;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .key{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      display:inline-block;
+      border: 1px solid rgba(255,255,255,.18);
+    }
+
+    .dot.good{ background: rgba(45,212,191,.9); }
+    .dot.bad{ background: rgba(251,113,133,.9); }
+
+    .stage{
+      position:relative;
+      background: linear-gradient(180deg, rgba(96,165,250,.08), transparent 45%);
+      padding: 12px;
+    }
+
+    canvas{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.18);
+    }
+
+    .overlay{
+      position:absolute;
+      inset:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+    }
+
+    .card{
+      pointer-events:auto;
+      width:min(520px, 92%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(17,27,46,.88);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .card h2{
+      margin:0 0 8px;
+      font-size: 16px;
+    }
+
+    .card p{
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .card ul{
+      margin: 8px 0 12px 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .sr{
+      position:absolute;
+      left:-10000px;
+      top:auto;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Qualitative Catcher</h1>
+        <p class="help">
+          Catch <b style="color:var(--good)">qualitative</b> data types. Avoid <b style="color:var(--bad)">quantitative</b>.
+          Use ← → (or A/D). On touch, drag anywhere.
+        </p>
+      </div>
+      <div class="controls">
+        <select id="mode" aria-label="Difficulty">
+          <option value="easy">Easy</option>
+          <option value="standard" selected>Standard</option>
+          <option value="hard">Hard</option>
+        </select>
+        <button id="startBtn" type="button">Start</button>
+        <button id="pauseBtn" type="button" disabled>Pause</button>
+        <button id="resetBtn" type="button">Reset</button>
+      </div>
+    </header>
+
+    <div class="hud" aria-hidden="false">
+      <div class="pill">Score: <b id="score">0</b></div>
+      <div class="pill">Streak: <b id="streak">0</b></div>
+      <div class="pill">Lives: <b id="lives">3</b></div>
+      <div class="pill">Level: <b id="level">1</b></div>
+
+      <div class="legend">
+        <div class="key"><span class="dot good"></span> Qualitative</div>
+        <div class="key"><span class="dot bad"></span> Quantitative</div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <canvas id="game" width="960" height="540" aria-label="Game canvas"></canvas>
+
+      <div class="overlay" id="overlay">
+        <div class="card">
+          <h2>How to play</h2>
+          <p>Move the basket to catch only the qualitative items (categories/labels).</p>
+          <ul>
+            <li>Qualitative examples: nominal, ordinal, category, colour, brand</li>
+            <li>Quantitative examples: discrete, continuous, income, height, temperature</li>
+          </ul>
+          <div class="row">
+            <button id="playNow" type="button">Play</button>
+            <button id="practice" type="button">Practice: Qualitative only</button>
+          </div>
+          <p style="margin-top:10px">Tip: Edit the falling words in the arrays inside the JavaScript section.</p>
+        </div>
+      </div>
+
+      <div class="sr" aria-live="polite" id="live"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // === EDIT THESE LISTS ===
+  const QUALITATIVE = [
+    { label: "Nominal", hint: "categories with no order" },
+    { label: "Ordinal", hint: "categories with order" },
+    { label: "Category", hint: "e.g., fruit type" },
+    { label: "Colour", hint: "e.g., red/blue" },
+    { label: "Brand", hint: "e.g., Nike" },
+    { label: "Yes/No", hint: "binary category" },
+    { label: "Nationality", hint: "category label" },
+    { label: "Job role", hint: "category label" }
+  ];
+
+  const QUANTITATIVE = [
+    { label: "Discrete", hint: "counts" },
+    { label: "Continuous", hint: "measurements" },
+    { label: "Age", hint: "number of years" },
+    { label: "Income", hint: "numeric amount" },
+    { label: "Height", hint: "measurement" },
+    { label: "Temperature", hint: "measurement" },
+    { label: "Time (s)", hint: "measurement" },
+    { label: "Score (%)", hint: "numeric value" }
+  ];
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const ui = {
+    score: document.getElementById("score"),
+    streak: document.getElementById("streak"),
+    lives: document.getElementById("lives"),
+    level: document.getElementById("level"),
+    startBtn: document.getElementById("startBtn"),
+    pauseBtn: document.getElementById("pauseBtn"),
+    resetBtn: document.getElementById("resetBtn"),
+    mode: document.getElementById("mode"),
+    overlay: document.getElementById("overlay"),
+    playNow: document.getElementById("playNow"),
+    practice: document.getElementById("practice"),
+    live: document.getElementById("live")
+  };
+
+  // Responsive scaling: canvas internally fixed, CSS scales
+  function fitCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const scale = rect.width / canvas.width;
+    // Height is handled by CSS auto; pointer coords need scale
+    return scale;
+  }
+
+  // Game state
+  const state = {
+    running: false,
+    paused: false,
+    practiceQualOnly: false,
+    score: 0,
+    streak: 0,
+    lives: 3,
+    level: 1,
+    time: 0,
+    spawnTimer: 0,
+    items: [],
+    lastTs: 0,
+    difficulty: "standard",
+    scale: 1
+  };
+
+  const basket = {
+    x: canvas.width / 2,
+    y: canvas.height - 46,
+    w: 140,
+    h: 22,
+    speed: 560,
+    vx: 0
+  };
+
+  // Difficulty tuning
+  const DIFF = {
+    easy:     { spawnBase: 1.05, fallBase: 130, fallGain: 8, lives: 4 },
+    standard: { spawnBase: 0.90, fallBase: 160, fallGain: 10, lives: 3 },
+    hard:     { spawnBase: 0.75, fallBase: 185, fallGain: 12, lives: 2 }
+  };
+
+  function reset(full = true) {
+    const d = DIFF[state.difficulty];
+    state.running = false;
+    state.paused = false;
+    state.practiceQualOnly = false;
+    state.score = 0;
+    state.streak = 0;
+    state.lives = d.lives;
+    state.level = 1;
+    state.time = 0;
+    state.spawnTimer = 0;
+    state.items = [];
+    state.lastTs = 0;
+
+    basket.x = canvas.width / 2;
+    basket.vx = 0;
+
+    ui.score.textContent = state.score;
+    ui.streak.textContent = state.streak;
+    ui.lives.textContent = state.lives;
+    ui.level.textContent = state.level;
+
+    ui.pauseBtn.disabled = true;
+    ui.pauseBtn.textContent = "Pause";
+    ui.startBtn.disabled = false;
+
+    if (full) ui.overlay.style.display = "flex";
+
+    draw();
+  }
+
+  function announce(msg) {
+    ui.live.textContent = msg;
+  }
+
+  function setDifficulty(val) {
+    state.difficulty = val;
+    reset(false);
+  }
+
+  function start(practice = false) {
+    state.practiceQualOnly = practice;
+    state.running = true;
+    state.paused = false;
+    ui.overlay.style.display = "none";
+    ui.startBtn.disabled = true;
+    ui.pauseBtn.disabled = false;
+    announce(practice ? "Practice mode: qualitative only." : "Game started.");
+    requestAnimationFrame(loop);
+  }
+
+  function togglePause() {
+    if (!state.running) return;
+    state.paused = !state.paused;
+    ui.pauseBtn.textContent = state.paused ? "Resume" : "Pause";
+    announce(state.paused ? "Paused." : "Resumed.");
+    if (!state.paused) requestAnimationFrame(loop);
+  }
+
+  function gameOver() {
+    state.running = false;
+    ui.startBtn.disabled = false;
+    ui.pauseBtn.disabled = true;
+    ui.overlay.style.display = "flex";
+    ui.overlay.querySelector("h2").textContent = "Game over";
+    ui.overlay.querySelector("p").textContent =
+      `Final score: ${state.score}. Catch qualitative items and avoid quantitative ones.`;
+    announce("Game over.");
+  }
+
+  function levelUpIfNeeded() {
+    // Increase level every 12 points (roughly)
+    const targetLevel = 1 + Math.floor(state.score / 12);
+    if (targetLevel > state.level) {
+      state.level = targetLevel;
+      ui.level.textContent = state.level;
+      announce(`Level ${state.level}. Faster drops.`);
+    }
+  }
+
+  function spawnItem() {
+    const isQual = state.practiceQualOnly ? true : (Math.random() < 0.5);
+    const src = isQual ? QUALITATIVE : QUANTITATIVE;
+    const pick = src[Math.floor(Math.random() * src.length)];
+
+    const padding = 30;
+    const x = padding + Math.random() * (canvas.width - padding * 2);
+    const y = -30;
+
+    const d = DIFF[state.difficulty];
+    const speed = d.fallBase + (state.level - 1) * d.fallGain + Math.random() * 45;
+
+    // Item dimensions scale with text length
+    const baseW = 120;
+    const w = Math.min(240, baseW + pick.label.length * 7);
+    const h = 34;
+
+    state.items.push({
+      x, y, w, h,
+      vy: speed,
+      type: isQual ? "qualitative" : "quantitative",
+      label: pick.label,
+      hint: pick.hint
+    });
+  }
+
+  function update(dt) {
+    if (!state.running || state.paused) return;
+
+    state.time += dt;
+    levelUpIfNeeded();
+
+    // Spawn rate tightens slightly with level
+    const d = DIFF[state.difficulty];
+    const spawnEvery = Math.max(0.45, d.spawnBase - (state.level - 1) * 0.03);
+
+    state.spawnTimer += dt;
+    while (state.spawnTimer >= spawnEvery) {
+      state.spawnTimer -= spawnEvery;
+      spawnItem();
+    }
+
+    // Move basket
+    basket.x += basket.vx * dt;
+    const half = basket.w / 2;
+    basket.x = Math.max(half, Math.min(canvas.width - half, basket.x));
+
+    // Move items and resolve collisions
+    const bx1 = basket.x - basket.w / 2;
+    const bx2 = basket.x + basket.w / 2;
+    const by1 = basket.y - basket.h / 2;
+    const by2 = basket.y + basket.h / 2;
+
+    for (let i = state.items.length - 1; i >= 0; i--) {
+      const it = state.items[i];
+      it.y += it.vy * dt;
+
+      // Collision check AABB
+      const ix1 = it.x - it.w / 2;
+      const ix2 = it.x + it.w / 2;
+      const iy1 = it.y - it.h / 2;
+      const iy2 = it.y + it.h / 2;
+
+      const hit = ix1 < bx2 && ix2 > bx1 && iy1 < by2 && iy2 > by1;
+
+      if (hit) {
+        state.items.splice(i, 1);
+
+        if (it.type === "qualitative") {
+          state.streak += 1;
+          const bonus = Math.min(5, Math.floor(state.streak / 3));
+          state.score += 1 + bonus;
+          ui.score.textContent = state.score;
+          ui.streak.textContent = state.streak;
+          announce(`Correct: ${it.label}.`);
+        } else {
+          state.streak = 0;
+          state.lives -= 1;
+          ui.streak.textContent = state.streak;
+          ui.lives.textContent = state.lives;
+          announce(`Wrong: ${it.label}.`);
+          if (state.lives <= 0) {
+            draw();
+            return gameOver();
+          }
+        }
+        continue;
+      }
+
+      // Missed: if qualitative missed, small penalty (optional); if quantitative missed, no penalty
+      if (it.y - it.h/2 > canvas.height + 20) {
+        state.items.splice(i, 1);
+        if (it.type === "qualitative" && !state.practiceQualOnly) {
+          state.streak = 0;
+          state.score = Math.max(0, state.score - 1);
+          ui.score.textContent = state.score;
+          ui.streak.textContent = state.streak;
+          announce(`Missed: ${it.label}. -1`);
+        }
+      }
+    }
+  }
+
+  function draw() {
+    // Background
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Soft grid
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.strokeStyle = "#ffffff";
+    for (let x = 0; x <= canvas.width; x += 48) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = 0; y <= canvas.height; y += 48) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Basket
+    ctx.save();
+    ctx.translate(basket.x, basket.y);
+
+    // Basket base
+    roundRect(ctx, -basket.w/2, -basket.h/2, basket.w, basket.h, 10);
+    ctx.fillStyle = "rgba(255,255,255,.12)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.25)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Basket lip
+    roundRect(ctx, -basket.w/2 + 8, -basket.h/2 - 10, basket.w - 16, 16, 10);
+    ctx.fillStyle = "rgba(96,165,250,.25)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(96,165,250,.45)";
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Items
+    for (const it of state.items) {
+      ctx.save();
+      ctx.translate(it.x, it.y);
+
+      const good = it.type === "qualitative";
+      const bg = good ? "rgba(45,212,191,.16)" : "rgba(251,113,133,.16)";
+      const stroke = good ? "rgba(45,212,191,.75)" : "rgba(251,113,133,.75)";
+      const text = "#e8eefc";
+
+      roundRect(ctx, -it.w/2, -it.h/2, it.w, it.h, 12);
+      ctx.fillStyle = bg;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = text;
+      ctx.font = "700 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(it.label, 0, -1);
+
+      ctx.restore();
+    }
+
+    // Bottom instruction
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(0,0,0,.25)";
+    roundRect(ctx, 14, 14, 340, 34, 12);
+    ctx.fill();
+    ctx.fillStyle = "#e8eefc";
+    ctx.font = "600 13px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Catch qualitative. Avoid quantitative.", 28, 31);
+    ctx.restore();
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    c.beginPath();
+    c.moveTo(x + rr, y);
+    c.arcTo(x + w, y, x + w, y + h, rr);
+    c.arcTo(x + w, y + h, x, y + h, rr);
+    c.arcTo(x, y + h, x, y, rr);
+    c.arcTo(x, y, x + w, y, rr);
+    c.closePath();
+  }
+
+  function loop(ts) {
+    if (!state.running || state.paused) return;
+    if (!state.lastTs) state.lastTs = ts;
+    const dt = Math.min(0.033, (ts - state.lastTs) / 1000);
+    state.lastTs = ts;
+
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // Input: keyboard
+  const keys = new Set();
+  window.addEventListener("keydown", (e) => {
+    if (["ArrowLeft","ArrowRight","a","A","d","D"].includes(e.key)) e.preventDefault();
+    keys.add(e.key);
+    basket.vx = getVX();
+  });
+  window.addEventListener("keyup", (e) => {
+    keys.delete(e.key);
+    basket.vx = getVX();
+  });
+
+  function getVX(){
+    const left = keys.has("ArrowLeft") || keys.has("a") || keys.has("A");
+    const right = keys.has("ArrowRight") || keys.has("d") || keys.has("D");
+    if (left && !right) return -basket.speed;
+    if (right && !left) return basket.speed;
+    return 0;
+  }
+
+  // Input: pointer/touch drag
+  let dragging = false;
+  function pointerXToCanvas(px){
+    const rect = canvas.getBoundingClientRect();
+    const x = (px - rect.left) * (canvas.width / rect.width);
+    return x;
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    dragging = true;
+    canvas.setPointerCapture(e.pointerId);
+    basket.x = pointerXToCanvas(e.clientX);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    basket.x = pointerXToCanvas(e.clientX);
+  });
+  canvas.addEventListener("pointerup", () => dragging = false);
+  canvas.addEventListener("pointercancel", () => dragging = false);
+
+  // Buttons
+  ui.mode.addEventListener("change", () => setDifficulty(ui.mode.value));
+
+  ui.startBtn.addEventListener("click", () => {
+    reset(false);
+    start(false);
+  });
+
+  ui.pauseBtn.addEventListener("click", togglePause);
+
+  ui.resetBtn.addEventListener("click", () => {
+    ui.overlay.querySelector("h2").textContent = "How to play";
+    ui.overlay.querySelector("p").textContent = "Move the basket to catch only the qualitative items (categories/labels).";
+    reset(true);
+  });
+
+  ui.playNow.addEventListener("click", () => {
+    reset(false);
+    start(false);
+  });
+
+  ui.practice.addEventListener("click", () => {
+    reset(false);
+    start(true);
+  });
+
+  // Initial setup
+  setDifficulty(ui.mode.value);
+  state.scale = fitCanvas();
+  window.addEventListener("resize", () => state.scale = fitCanvas());
+
+  draw();
+})();
+</script>
+</body>
+</html>
